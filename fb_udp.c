@@ -17,19 +17,72 @@
 
 #define DEVICE_NAME "/dev/fb0"
 
-int OpenFrameBuffer(int fd)
-{
+int sd;
+struct sockaddr_in addr;
+socklen_t sin_size;
+struct sockaddr_in from_addr;
+char receiveBuff[2048]; // 受信バッファ
+uint32_t *buf;
+
+int OpenFrameBuffer(int);
+void udpReceive(void);
+int returnId(void);
+
+void udpReceive(void){
+    // IPv4 UDP のソケットを作成
+    if ((sd = socket(AF_INET, SOCK_DGRAM, 0)) < 0){
+        perror("socket");
+        return -1;
+    }
+
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(5001);
+    addr.sin_addr.s_addr = INADDR_ANY; 
+
+    if (bind(sd, (struct sockaddr *)&addr, sizeof(addr)) < 0){
+        perror("bind");
+        return -1;
+    }
+
+    memset(receiveBuff, 0, sizeof(receiveBuff));
+
+    while (returnId() != -1);
+
+    int packet_end = true;
+    int counter = 0;
+    int ptrCounter = 0;
+
+    while (packet_end) {
+        int id = returnId();//update packetBuff
+        buf = ptrCounter + receiveBuff
+        if(counter>1500){
+            packet_end = false;
+        }
+        counter++;
+        ptrCounter += 1440-sizeof(int);　//1436
+    }
+    
+    close(sd);
+}
+
+int returnId(void){
+    if (recvfrom(sd, receiveBuff, sizeof(receiveBuff), 0, (struct sockaddr *)&from_addr, &sin_size) < 0){
+        perror("recvfrom");
+        return -1;
+    }
+    return receiveBuff[0] << 24 | receiveBuff[1] << 16 | receiveBuff[2] << 8 | receiveBuff[3]; //return ID
+}
+
+int OpenFrameBuffer(int fd){
     fd = open(DEVICE_NAME, O_RDWR);
-    if (!fd)
-    {
+    if (!fd){
         fprintf(stderr, "cannot open the FrameBuffer '%s'\n", DEVICE_NAME);
         exit(1);
     }
     return fd;
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv){
     int fd = 0;
     int screensize;
     int x, y, col;
@@ -61,7 +114,6 @@ int main(int argc, char **argv)
 
     /* Handler if socket get a packet, it will be mapped on memory */
 
-    uint32_t *buf;
     if ((buf = (uint32_t *)mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)) < 0)
     {
         fprintf(stderr, "cannot get framebuffer");

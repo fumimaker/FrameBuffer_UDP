@@ -42,7 +42,7 @@ int main(int argc, char **argv)
     if (recvfrom(sd, buf, sizeof(buf), 0, (struct sockaddr *)&from_addr, &sin_size) < 0)
     {
         perror("recvfrom");
-        return -1;
+    return -1;
     }
 
     // ソケットのクローズ
