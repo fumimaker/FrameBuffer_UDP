@@ -17,6 +17,14 @@
 
 #define DEVICE_NAME "/dev/fb0"
 
+#define WIDTH   1280
+#define HEIGHT  720
+#define COLOR_DEPTH   3
+
+#define SIZE_OF_DATA        1441
+#define SIZE_OF_PAYLOAD     SIZE_OF_DATA - sizeof(int) // 1437
+#define PACKET_TIMES        WIDTH*HEIGHT*COLOR_DEPTH / SIZE_OF_PAYLOAD //1925回
+#define SIZE_OF_ID          sizeof(int)
 int sd;
 struct sockaddr_in addr;
 socklen_t sin_size;
@@ -45,24 +53,7 @@ void udpReceive(void){
     }
 
     memset(receiveBuff, 0, sizeof(receiveBuff));
-
     while (returnId() != -1);
-
-    int packet_end = true;
-    int counter = 0;
-    int ptrCounter = 0;
-
-    while (packet_end) {
-        int id = returnId();//update packetBuff
-        buf = ptrCounter + receiveBuff
-        if(counter>1500){
-            packet_end = false;
-        }
-        counter++;
-        ptrCounter += 1440-sizeof(int);　//1436
-    }
-    
-    close(sd);
 }
 
 int returnId(void){
@@ -113,12 +104,43 @@ int main(int argc, char **argv){
     printf("RECVFRAM Atlys Ver0.1\n%d(pixel)x%d(line), %d(bit per pixel), %d(line length)\n", xres, yres, bpp, line_len);
 
     /* Handler if socket get a packet, it will be mapped on memory */
-
     if ((buf = (uint32_t *)mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)) < 0)
     {
         fprintf(stderr, "cannot get framebuffer");
         exit(1);
     }
+
+    udpReceive();
+    int frame_end = false;
+    int counter = 0;
+    int ptrCounter = 0;
+    char *tempbuff;
+    //メモリ確保 1437byte * 1925回
+    tempbuff = (char *)malloc(SIZE_OF_PAYLOAD * SIZE_OF_DATA); 
+
+    while (!frame_end){
+        int id = returnId(); //update packetBuff
+        while(id != counter){ //パケットを失ったらそのラインを全部スキップ
+            counter++;
+            tempbuff = 
+            ptrCounter += SIZE_OF_PAYLOAD //1437
+        }
+
+        //4byteのポインターに1byteポインタのReceivebuffを突っ込む
+    *(buf + ptrCounter / 3) =
+                            ((receiveBuff + SIZE_OF_ID + counter) << 16)    |
+                            ((receiveBuff + SIZE_OF_ID + counter + 1) << 8) |
+                            ((receiveBuff + SIZE_OF_ID + counter + 2) << 0)
+        
+        if (counter > SIZE_OF_PAYLOAD)
+        { //1frame finish
+            frame_end = true;
+        }
+        counter += 3;
+        ptrCounter += SIZE_OF_PAYLOAD//1437
+    }
+
+    close(sd);
 
     b = 0;
     while (1)
@@ -140,5 +162,6 @@ int main(int argc, char **argv){
 
     munmap(buf, screensize);
     close(fd);
+    free(tempbuff); //memory解放
     return 0;
 }
