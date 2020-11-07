@@ -1,0 +1,14 @@
+[all]
+#dtoverlay=vc4-fkms-v3d
+gpu_mem=128
+hdmi_ignore_edid=0xa5000080
+hdmi_group=2
+hdmi_mode=82
+#hdmi_cvt 1920 1080 60
+disable_overscan=1
+max_framebuffer_width=1920
+max_framebuffer_height=1080
+framebuffer_depth=32
+framebuffer_ignore_alpha=1
+#hdmi_pixel_freq_limit=400000000
+#hvs_priority=0x32ff
