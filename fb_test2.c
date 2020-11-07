@@ -53,7 +53,7 @@ int main(int argc, char **argv){
     bpp = vinfo.bits_per_pixel;
     line_len = finfo.line_length;
 
-    screensize = yres * line_len * bpp / 8;
+    screensize = yres * xres * bpp / 8;
     printf("RECVFRAM Atlys Ver0.1\n%d(pixel)x%d(line), %d(bit per pixel), %d(line length)\n", xres, yres, bpp, line_len);
 
     /* Handler if socket get a packet, it will be mapped on memory */
