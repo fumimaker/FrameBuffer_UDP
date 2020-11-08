@@ -130,11 +130,11 @@ int main(int argc, char **argv){
         int line_end = false;
         int counter = 0;
         while (!line_end){  //1パケット(1441byte)を処理するループ
-            *(tempbuf + counter / 3) =
-                ((receiveBuff + SIZE_OF_ID + counter    ) << 16) |
-                ((receiveBuff + SIZE_OF_ID + counter + 1) << 8) |
-                ((receiveBuff + SIZE_OF_ID + counter + 2));
-            printf("counter: %d\n\r");
+            *(tempbuff + counter / 3) =
+                (*(receiveBuff + SIZE_OF_ID + counter    ) << 16) |
+                (*(receiveBuff + SIZE_OF_ID + counter + 1) << 8) |
+                (*(receiveBuff + SIZE_OF_ID + counter + 2));
+            printf("counter: %d\n\r", counter);
 
             // ID + counterが1441を超えたらライン終了
             if(counter+SIZE_OF_ID >= SIZE_OF_DATA){ 
@@ -157,6 +157,7 @@ int main(int argc, char **argv){
 
     int x = 0, y = 0;
     int r = 0, g = 0, b = 0;
+    int pixelCounter = 0;
     while (1)
     {
         for (y = 0; y < yres; y++)
@@ -164,9 +165,10 @@ int main(int argc, char **argv){
             for (x = 0; x < xres; x++)
             {
                 if ((x < WIDTH) || (y < HEIGHT)) {
-                    r = (tempbuff >> 16)    & 0xFF;
-                    g = (tempbuff >> 8)     & 0xFF;
-                    b = (tempbuff)          & 0xFF; 
+                    r = (*(tempbuff + x + (y * WIDTH)));
+                    g = (*(tempbuff + x + (y * WIDTH)));
+                    b = (*(tempbuff + x + (y * WIDTH)));
+                    pixelCounter += 3;
                 }
                 else {
                     r = 0;
