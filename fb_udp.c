@@ -117,7 +117,7 @@ int main(int argc, char **argv){
     char *tempbuff;
 
     //メモリ確保 1437byte * 1925回
-    tempbuff = (char *)malloc(SIZE_OF_PAYLOAD * PACKET_TIMES); 
+    tempbuff = (char *)malloc(SIZE_OF_PAYLOAD * 1925); 
 
     while (!frame_end){
         int id = returnId(); //update packetBuff
@@ -165,9 +165,9 @@ int main(int argc, char **argv){
             for (x = 0; x < xres; x++)
             {
                 if ((x < WIDTH) || (y < HEIGHT)) {
-                    r = (*(tempbuff + x + (y * WIDTH)));
-                    g = (*(tempbuff + x + (y * WIDTH)));
-                    b = (*(tempbuff + x + (y * WIDTH)));
+                    r = *(tempbuff + pixelCounter);
+                    g = *(tempbuff + pixelCounter + 1);
+                    b = *(tempbuff + pixelCounter + 2);
                     pixelCounter += 3;
                 }
                 else {
