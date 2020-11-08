@@ -21,6 +21,9 @@
 #define HEIGHT  720
 #define COLOR_DEPTH   3
 
+#define false   0
+#define true    1
+
 #define SIZE_OF_DATA        1441
 #define SIZE_OF_PAYLOAD     SIZE_OF_DATA - sizeof(int) // 1437
 #define PACKET_TIMES        WIDTH*HEIGHT*COLOR_DEPTH / SIZE_OF_PAYLOAD //1925回
