@@ -25,6 +25,7 @@
 #define SIZE_OF_PAYLOAD     SIZE_OF_DATA - sizeof(int) // 1437
 #define PACKET_TIMES        WIDTH*HEIGHT*COLOR_DEPTH / SIZE_OF_PAYLOAD //1925回
 #define SIZE_OF_ID          sizeof(int)
+
 int sd;
 struct sockaddr_in addr;
 socklen_t sin_size;
@@ -33,10 +34,10 @@ char receiveBuff[2048]; // 受信バッファ
 uint32_t *buf;
 
 int OpenFrameBuffer(int);
-void udpReceive(void);
+void waitForNewframe(void);
 int returnId(void);
 
-void udpReceive(void){
+void waitForNewframe(void){
     // IPv4 UDP のソケットを作成
     if ((sd = socket(AF_INET, SOCK_DGRAM, 0)) < 0){
         perror("socket");
@@ -76,8 +77,6 @@ int OpenFrameBuffer(int fd){
 int main(int argc, char **argv){
     int fd = 0;
     int screensize;
-    int x, y, col;
-    int r, g, b;
     fd = OpenFrameBuffer(fd);
 
     struct fb_var_screeninfo vinfo;
@@ -94,69 +93,86 @@ int main(int argc, char **argv){
         exit(1);
     }
 
-    int xres, yres, bpp, line_len;
-    xres = vinfo.xres;
-    yres = vinfo.yres;
-    bpp = vinfo.bits_per_pixel;
-    line_len = finfo.line_length;
+    int xres = vinfo.xres;
+    int yres = vinfo.yres;
+    int bpp = vinfo.bits_per_pixel;
+    int line_len = finfo.line_length;
 
     screensize = yres * xres * bpp / 8;
     printf("RECVFRAM Atlys Ver0.1\n%d(pixel)x%d(line), %d(bit per pixel), %d(line length)\n", xres, yres, bpp, line_len);
 
     /* Handler if socket get a packet, it will be mapped on memory */
-    if ((buf = (uint32_t *)mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)) < 0)
-    {
+    if ((buf = (uint32_t *)mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)) < 0){
         fprintf(stderr, "cannot get framebuffer");
         exit(1);
     }
 
-    udpReceive();
+    waitForNewframe();
+
     int frame_end = false;
-    int counter = 0;
-    int ptrCounter = 0;
+    int packetCounter = 0;
     char *tempbuff;
+
     //メモリ確保 1437byte * 1925回
-    tempbuff = (char *)malloc(SIZE_OF_PAYLOAD * SIZE_OF_DATA); 
+    tempbuff = (char *)malloc(SIZE_OF_PAYLOAD * PACKET_TIMES); 
 
     while (!frame_end){
         int id = returnId(); //update packetBuff
-        while(id != counter){ //パケットを失ったらそのラインを全部スキップ
-            counter++;
-            tempbuff = 
-            ptrCounter += SIZE_OF_PAYLOAD //1437
+        printf("id: %d\n\r", id);
+        while (id > packetCounter){
+            printf("id: %d, packetCounter: %d\n\r", id, packetCounter);
+            packetCounter++;
         }
 
-        //4byteのポインターに1byteポインタのReceivebuffを突っ込む
-    *(buf + ptrCounter / 3) =
-                            ((receiveBuff + SIZE_OF_ID + counter) << 16)    |
-                            ((receiveBuff + SIZE_OF_ID + counter + 1) << 8) |
-                            ((receiveBuff + SIZE_OF_ID + counter + 2) << 0)
-        
-        if (counter > SIZE_OF_PAYLOAD)
-        { //1frame finish
-            frame_end = true;
-        }
-        counter += 3;
-        ptrCounter += SIZE_OF_PAYLOAD//1437
-    }
+        int line_end = false;
+        int counter = 0;
+        while (!line_end){  //1パケット(1441byte)を処理するループ
+            *(tempbuf + counter / 3) =
+                ((receiveBuff + SIZE_OF_ID + counter    ) << 16) |
+                ((receiveBuff + SIZE_OF_ID + counter + 1) << 8) |
+                ((receiveBuff + SIZE_OF_ID + counter + 2));
+            printf("counter: %d\n\r");
 
-    close(sd);
-
-    b = 0;
-    while (1)
-    {
-        for (y = 0; y < yres; ++y)
-        {
-            for (x = 0; x < xres; ++x)
-            {
-                r = (x * 256 / xres);
-                g = (y * 256 / yres);
-                *(buf + ((y * line_len / 4) + x)) = (r << 16) | (g << 8) | (b); // 00 RR GG BB
+            // ID + counterが1441を超えたらライン終了
+            if(counter+SIZE_OF_ID >= SIZE_OF_DATA){ 
+                line_end = true;
+                printf("line end\n\r");
+            }
+            else {
+                counter += 3;
             }
         }
-        if (++b > 255)
+
+        //lineCounter >= 1925になったら終了
+        if (packetCounter >= PACKET_TIMES){
+            frame_end = true;
+            printf("finish frame\n\r");
+        }
+        packetCounter++;
+    }
+    close(sd);
+
+    int x = 0, y = 0;
+    int r = 0, g = 0, b = 0;
+    while (1)
+    {
+        for (y = 0; y < yres; y++)
         {
-            b = 0;
+            for (x = 0; x < xres; x++)
+            {
+                if ((x < WIDTH) || (y < HEIGHT)) {
+                    r = (tempbuff >> 16)    & 0xFF;
+                    g = (tempbuff >> 8)     & 0xFF;
+                    b = (tempbuff)          & 0xFF; 
+                }
+                else {
+                    r = 0;
+                    g = 0;
+                    b = 0;
+                }
+                // 7680/4 = 1920
+                *(buf + ((y * line_len / 4) + x)) = (r << 16) | (g << 8) | (b); // 00 RR GG BB
+            }
         }
     }
 
