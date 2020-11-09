@@ -44,10 +44,9 @@ int returnId(void);
 
 
 int returnId(void){
-    int result = recv(sd, receiveBuff, sizeof(receiveBuff), 0);
+    recv(sd, receiveBuff, sizeof(receiveBuff), 0);
 
-    uint32_t id = receiveBuff[0] << 24 | receiveBuff[1] << 16 | receiveBuff[2] << 8 | receiveBuff[3]; //return ID
-    return id;
+    return receiveBuff[0] << 24 | receiveBuff[1] << 16 | receiveBuff[2] << 8 | receiveBuff[3]; //return ID
 }
 
 int OpenFrameBuffer(int fd){
@@ -135,11 +134,11 @@ int main(int argc, char **argv){
     int finish = false;
 
     int cnt=0;
+    int id=0;
     while(1){   
-        int id = returnId();
+        uint32_t id = returnId();
         memcpy(p + (id*1437), receiveBuff + SIZE_OF_ID, 1437);
-        printf("%d\n", cnt);
-        cnt++;
+        //printf("%d, %d\n", cnt, id);
     }
     close(sd);
 
