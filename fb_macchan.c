@@ -135,9 +135,11 @@ int main(int argc, char **argv)
     printf("while start\n\r");
 
     while (1){
-        recv(sd, receiveBuff, sizeof(receiveBuff), 0);
+        recv(sd, receiveBuff, sizeof(receiveBuff), 0); 
+        //TODO: エラー処理
+        //長さが違う可能性があるので何とかする
         id = receiveBuff[2] << 8 | receiveBuff[3];
-        
+
         remain = (id != 1924) ? 1437 : (1280 * 720 * 3) - (id * 1437);
         if (id!=1924){
             memcpy(p + (id * 1437), receiveBuff + SIZE_OF_ID, 1437); //remain
