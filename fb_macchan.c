@@ -15,6 +15,8 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 
+#include <time.h>
+
 #define DEVICE_NAME "/dev/fb0"
 
 #define UDP_PORT 5001
@@ -128,13 +130,18 @@ int main(int argc, char **argv)
     int cnt = 0;
     int id = 0;
     int remain = 0;
+
+
     printf("while start\n\r");
-    while (1)
-    {
+
+    while (1){
         recv(sd, receiveBuff, sizeof(receiveBuff), 0);
-        id = receiveBuff[0] << 24 | receiveBuff[1] << 16 | receiveBuff[2] << 8 | receiveBuff[3];
+        id = receiveBuff[2] << 8 | receiveBuff[3];
+        
         remain = (id != 1924) ? 1437 : (1280 * 720 * 3) - (id * 1437);
-        memcpy(p + (id * 1437), receiveBuff + SIZE_OF_ID, remain);
+        if (id!=1924){
+            memcpy(p + (id * 1437), receiveBuff + SIZE_OF_ID, 1437); //remain
+        }
     }
     close(sd);
 
