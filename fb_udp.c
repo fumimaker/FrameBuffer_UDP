@@ -24,10 +24,11 @@
 #define false   0
 #define true    1
 
-#define SIZE_OF_DATA        1441
-#define SIZE_OF_PAYLOAD     SIZE_OF_DATA - sizeof(int) // 1437
-#define PACKET_TIMES        WIDTH*HEIGHT*COLOR_DEPTH / SIZE_OF_PAYLOAD //1925回
-#define SIZE_OF_ID          sizeof(int)
+#define SIZE_OF_DATA 1441
+#define SIZE_OF_ID sizeof(int)
+#define SIZE_OF_FRAME       (WIDTH *HEIGHT *COLOR_DEPTH)
+#define SIZE_OF_PAYLOAD     (SIZE_OF_DATA - sizeof(int)) // 1437
+#define PACKET_TIMES        (SIZE_OF_FRAME / SIZE_OF_PAYLOAD)+1 //1924+1回
 
 int sd;
 struct sockaddr_in addr;
@@ -37,10 +38,10 @@ char receiveBuff[2048]; // 受信バッファ
 uint32_t *buf;
 
 int OpenFrameBuffer(int);
-void waitForNewframe(void);
+int waitForNewframe(void);
 int returnId(void);
 
-void waitForNewframe(void){
+int waitForNewframe(void){
     // IPv4 UDP のソケットを作成
     if ((sd = socket(AF_INET, SOCK_DGRAM, 0)) < 0){
         perror("socket");
@@ -57,6 +58,7 @@ void waitForNewframe(void){
     }
 
     memset(receiveBuff, 0, sizeof(receiveBuff));
+    printf("waiting for new frame...\n\r");
     while (returnId() != -1);
 }
 
@@ -78,6 +80,12 @@ int OpenFrameBuffer(int fd){
 }
 
 int main(int argc, char **argv){
+    printf("SIZE_OF_PAYLOAD: %d\n\r", SIZE_OF_PAYLOAD);
+    printf("PACKET_TIMES: %d\n\r", PACKET_TIMES);
+    printf("SIZE_OF_ID: %d\n\r", SIZE_OF_ID);
+    printf("SIZE_OF_DATA: %d\n\r", SIZE_OF_DATA);
+    printf("malloc: %d\n\r", (sizeof(char) * SIZE_OF_PAYLOAD * PACKET_TIMES));
+
     int fd = 0;
     int screensize;
     fd = OpenFrameBuffer(fd);
@@ -114,10 +122,14 @@ int main(int argc, char **argv){
 
     int frame_end = false;
     int packetCounter = 0;
-    //char tempbuff[SIZE_OF_PAYLOAD * PACKET_TIMES];
 
     //メモリ確保 1437byte * 1925回
-    char *tempbuff = (char *)malloc(sizeof(char) * (SIZE_OF_PAYLOAD * 1925)); 
+    char *tempbuff = (char *)malloc(sizeof(char)*SIZE_OF_PAYLOAD*PACKET_TIMES); 
+
+    if( tempbuff == NULL ){
+        printf("cannot allocate memory\n\r");
+        return -1;
+    }
 
     while (!frame_end){
         int id = returnId(); //update packetBuff
@@ -136,7 +148,7 @@ int main(int argc, char **argv){
                 (*(receiveBuff + SIZE_OF_ID + counter + 2));
             printf("counter: %d\n\r", counter);
 
-            // ID + counterが1441を超えたらライン終了
+            // ID + counterが1441を超えたらライン終了
             if(counter+SIZE_OF_ID >= SIZE_OF_DATA){ 
                 line_end = true;
                 printf("line end\n\r");
@@ -180,6 +192,7 @@ int main(int argc, char **argv){
             }
         }
     }
+    printf("drawing finished.\n\r");
 
     munmap(buf, screensize);
     close(fd);
