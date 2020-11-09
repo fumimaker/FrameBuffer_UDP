@@ -17,6 +17,8 @@
 
 #define DEVICE_NAME "/dev/fb0"
 
+#define UDP_PORT 5001
+
 #define WIDTH   1280
 #define HEIGHT  720
 #define COLOR_DEPTH   3
@@ -24,8 +26,8 @@
 #define false   0
 #define true    1
 
-#define SIZE_OF_DATA 1441
-#define SIZE_OF_ID sizeof(int)
+#define SIZE_OF_DATA        1441
+#define SIZE_OF_ID          sizeof(int)
 #define SIZE_OF_FRAME       (WIDTH *HEIGHT *COLOR_DEPTH)
 #define SIZE_OF_PAYLOAD     (SIZE_OF_DATA - sizeof(int)) // 1437
 #define PACKET_TIMES        (SIZE_OF_FRAME / SIZE_OF_PAYLOAD)+1 //1924+1回
@@ -49,7 +51,7 @@ int waitForNewframe(void){
     }
 
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(5001);
+    addr.sin_port = htons(UDP_PORT);
     addr.sin_addr.s_addr = INADDR_ANY; 
 
     if (bind(sd, (struct sockaddr *)&addr, sizeof(addr)) < 0){
