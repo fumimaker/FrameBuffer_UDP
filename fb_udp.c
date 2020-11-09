@@ -114,10 +114,10 @@ int main(int argc, char **argv){
 
     int frame_end = false;
     int packetCounter = 0;
-    char *tempbuff;
+    char tempbuff[SIZE_OF_PAYLOAD * PACKET_TIMES];
 
     //メモリ確保 1437byte * 1925回
-    tempbuff = (char *)malloc(sizeof(char) * (SIZE_OF_PAYLOAD * 1925)); 
+    //tempbuff = (char *)malloc(sizeof(char) * (SIZE_OF_PAYLOAD * 1925)); 
 
     while (!frame_end){
         int id = returnId(); //update packetBuff
