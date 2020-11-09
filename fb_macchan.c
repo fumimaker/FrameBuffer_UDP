@@ -19,16 +19,16 @@
 
 #define UDP_PORT 5001
 
-#define WIDTH   1280
-#define HEIGHT  720
-#define COLOR_DEPTH   3
+#define WIDTH 1280
+#define HEIGHT 720
+#define COLOR_DEPTH 3
 
-#define false   0
-#define true    1
+#define false 0
+#define true 1
 
-#define SIZE_OF_DATA        1441
-#define SIZE_OF_ID          sizeof(int)
-#define SIZE_OF_FRAME       (WIDTH *HEIGHT *COLOR_DEPTH)
+#define SIZE_OF_DATA 1441
+#define SIZE_OF_ID sizeof(int)
+#define SIZE_OF_FRAME (WIDTH * HEIGHT * COLOR_DEPTH)
 
 int sd;
 struct sockaddr_in addr;
@@ -40,23 +40,26 @@ uint32_t *buf;
 int OpenFrameBuffer(int);
 int returnId(void);
 
-
-int returnId(void){
+int returnId(void)
+{
     recv(sd, receiveBuff, sizeof(receiveBuff), 0);
     return receiveBuff[0] << 24 | receiveBuff[1] << 16 | receiveBuff[2] << 8 | receiveBuff[3];
     //return ID
 }
 
-int OpenFrameBuffer(int fd){
+int OpenFrameBuffer(int fd)
+{
     fd = open(DEVICE_NAME, O_RDWR);
-    if (!fd){
+    if (!fd)
+    {
         fprintf(stderr, "cannot open the FrameBuffer '%s'\n", DEVICE_NAME);
         exit(1);
     }
     return fd;
 }
 
-int main(int argc, char **argv){
+int main(int argc, char **argv)
+{
 
     int fd = 0;
     int screensize;
@@ -85,13 +88,11 @@ int main(int argc, char **argv){
     printf("RECVFRAM Atlys Ver0.1\n%d(pixel)x%d(line), %d(bit per pixel), %d(line length)\n", xres, yres, bpp, line_len);
 
     /* Handler if socket get a packet, it will be mapped on memory */
-    if ((buf = (uint32_t *)mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)) < 0){
+    if ((buf = (uint32_t *)mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)) < 0)
+    {
         fprintf(stderr, "cannot get framebuffer");
         exit(1);
     }
-
-
-
 
     // IPv4 UDP のソケットを作成
     if ((sd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
@@ -116,7 +117,6 @@ int main(int argc, char **argv){
 
     while (returnId() != 1924);
 
-
     int frame_end = false;
     char *p = (char *)buf; //PをTEMPにした。
     int x = 0, y = 0;
@@ -125,19 +125,16 @@ int main(int argc, char **argv){
     uint32_t pixCounter = 0;
     int finish = false;
 
-    int cnt=0;
-    int id=0;
+    int cnt = 0;
+    int id = 0;
+    int remain = 0;
     printf("while start\n\r");
-    while(1){   
+    while (1)
+    {
         recv(sd, receiveBuff, sizeof(receiveBuff), 0);
-        int id = receiveBuff[0] << 24 | receiveBuff[1] << 16 | receiveBuff[2] << 8 | receiveBuff[3];
-        if(id!=1924) {
-            memcpy(p + (id * 1437), receiveBuff + SIZE_OF_ID, 1437);
-        }
-        else {
-            int remain = (1280 * 720 * 3) - (id * 1437);
-            memcpy(p + (id * 1437), receiveBuff + SIZE_OF_ID, remain);
-        }
+        id = receiveBuff[0] << 24 | receiveBuff[1] << 16 | receiveBuff[2] << 8 | receiveBuff[3];
+        remain = (id != 1924) ? 1437 : (1280 * 720 * 3) - (id * 1437);
+        memcpy(p + (id * 1437), receiveBuff + SIZE_OF_ID, remain);
     }
     close(sd);
 
