@@ -121,7 +121,7 @@ int main(int argc, char **argv){
     memset(receiveBuff, 0, sizeof(receiveBuff));
 
     printf("waiting for new frame...\n\r");
-    while (returnId() != -1);
+    while (returnId() != 1924);
 
 
 
@@ -134,32 +134,12 @@ int main(int argc, char **argv){
     uint32_t pixCounter = 0;
     int finish = false;
 
-    while (frame_end == false){
-        int id = returnId(); //update packetBuff
-        //printf("%d\n", id);
-        int line_end = false;
-        while (line_end == false) {  //1パケット(1441byte)を処理するループ
-            r = *(receiveBuff + SIZE_OF_ID + counter);
-            *(p + ((pixCounter*3) % 1280) + ((pixCounter*3) / 1280) * 1280) = r;
-            counter++;
-            g = *(receiveBuff + SIZE_OF_ID + counter);
-            *(p + ((pixCounter * 3) % 1280) + ((pixCounter * 3) / 1280) * 1280) = g;
-            counter++;
-            b = *(receiveBuff + SIZE_OF_ID + counter);
-            *(p + ((pixCounter * 3) % 1280) + ((pixCounter * 3) / 1280) * 1280) = b;
-            counter++;
-            pixCounter++;
-            //printf("counter: %d\n", counter);
-            // 1437+4 >= 1441なら終わり
-            if (counter >= 3840){
-                line_end = true;
-                counter = 0;
-            }
-        }
-        if(pixCounter/1280 >= 720){
-            pixCounter = 0;
-            frame_end = true;
-        }
+    int cnt=0;
+    while(1){   
+        int id = returnId();
+        memcpy(p + (id*1437), receiveBuff + SIZE_OF_ID, 1437);
+        printf("%d\n", cnt);
+        cnt++;
     }
     close(sd);
 
