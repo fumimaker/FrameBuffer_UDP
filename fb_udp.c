@@ -29,8 +29,6 @@
 #define SIZE_OF_DATA        1441
 #define SIZE_OF_ID          sizeof(int)
 #define SIZE_OF_FRAME       (WIDTH *HEIGHT *COLOR_DEPTH)
-#define SIZE_OF_PAYLOAD     (SIZE_OF_DATA - sizeof(int)) // 1437
-#define PACKET_TIMES        (SIZE_OF_FRAME / SIZE_OF_PAYLOAD)+1 //1924+1回
 
 int sd;
 struct sockaddr_in addr;
@@ -59,11 +57,6 @@ int OpenFrameBuffer(int fd){
 }
 
 int main(int argc, char **argv){
-    printf("SIZE_OF_PAYLOAD: %d\n\r", SIZE_OF_PAYLOAD);
-    printf("PACKET_TIMES: %d\n\r", PACKET_TIMES);
-    printf("SIZE_OF_ID: %d\n\r", SIZE_OF_ID);
-    printf("SIZE_OF_DATA: %d\n\r", SIZE_OF_DATA);
-    printf("malloc: %d\n\r", (sizeof(char) * SIZE_OF_PAYLOAD * PACKET_TIMES));
 
     int fd = 0;
     int screensize;
@@ -120,9 +113,8 @@ int main(int argc, char **argv){
     memset(receiveBuff, 0, sizeof(receiveBuff));
 
     printf("waiting for new frame...\n\r");
+
     while (returnId() != 1924);
-
-
 
 
     int frame_end = false;
@@ -135,10 +127,18 @@ int main(int argc, char **argv){
 
     int cnt=0;
     int id=0;
+    printf("while start\n\r");
     while(1){   
-        uint32_t id = returnId();
-        memcpy(p + (id*1437), receiveBuff + SIZE_OF_ID, 1437);
-        //printf("%d, %d\n", cnt, id);
+        int id = returnId();
+        //printf("%d\n\r", id);
+        if(id==1924) {
+            int remain = (1280*720*3) - (id*1437);
+            //printf("remain: %d",remain);
+            memcpy(p + (id * 1437), receiveBuff + SIZE_OF_ID, remain);
+        }
+        else {
+            memcpy(p + (id * 1437), receiveBuff + SIZE_OF_ID, 1437);
+        }
     }
     close(sd);
 
