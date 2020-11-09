@@ -40,36 +40,20 @@ char receiveBuff[2048]; // 受信バッファ
 uint32_t *buf;
 
 int OpenFrameBuffer(int);
-int waitForNewframe(void);
 int returnId(void);
 
-int waitForNewframe(void){
-    // IPv4 UDP のソケットを作成
-    if ((sd = socket(AF_INET, SOCK_DGRAM, 0)) < 0){
-        perror("socket");
-        return -1;
-    }
-
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(UDP_PORT);
-    addr.sin_addr.s_addr = INADDR_ANY; 
-
-    if (bind(sd, (struct sockaddr *)&addr, sizeof(addr)) < 0){
-        perror("bind");
-        return -1;
-    }
-
-    memset(receiveBuff, 0, sizeof(receiveBuff));
-    printf("waiting for new frame...\n\r");
-    while (returnId() != -1);
-}
 
 int returnId(void){
-    if (recvfrom(sd, receiveBuff, sizeof(receiveBuff), 0, (struct sockaddr *)&from_addr, &sin_size) < 0){
+    int result = recvfrom(sd, receiveBuff, sizeof(receiveBuff), 0, (struct sockaddr *)&from_addr, &sin_size);
+    //printf("result: %d", result);
+
+    if(result != 1441){
         perror("recvfrom");
         return -1;
     }
-    return receiveBuff[0] << 24 | receiveBuff[1] << 16 | receiveBuff[2] << 8 | receiveBuff[3]; //return ID
+
+    uint32_t id = receiveBuff[0] << 24 | receiveBuff[1] << 16 | receiveBuff[2] << 8 | receiveBuff[3]; //return ID
+    return id;
 }
 
 int OpenFrameBuffer(int fd){
@@ -120,84 +104,73 @@ int main(int argc, char **argv){
         exit(1);
     }
 
-    waitForNewframe();
 
-    int frame_end = false;
-    int packetCounter = 0;
 
-    //メモリ確保 1437byte * 1925回
-    char *tempbuff = (char *)malloc(sizeof(char)*SIZE_OF_PAYLOAD*PACKET_TIMES); 
 
-    if( tempbuff == NULL ){
-        printf("cannot allocate memory\n\r");
+    // IPv4 UDP のソケットを作成
+    if ((sd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+    {
+        perror("socket");
         return -1;
     }
 
-    while (!frame_end){
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(UDP_PORT);
+    addr.sin_addr.s_addr = INADDR_ANY;
+
+    if (bind(sd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+    {
+        perror("bind");
+        return -1;
+    }
+
+    memset(receiveBuff, 0, sizeof(receiveBuff));
+    printf("waiting for new frame...\n\r");
+    while (returnId() != -1);
+
+
+
+
+    int frame_end = false;
+    char *p = (char *)buf; //PをTEMPにした。
+    int x = 0, y = 0;
+    uint32_t r = 0, g = 0, b = 0;
+    uint32_t counter = 0;
+    uint32_t pixCounter = 0;
+
+    while (frame_end == false){
         int id = returnId(); //update packetBuff
-        printf("id: %d\n\r", id);
-        while (id > packetCounter){
-            printf("id: %d, packetCounter: %d\n\r", id, packetCounter);
-            packetCounter++;
-        }
+        //printf("id: %d\n\r", id);
 
         int line_end = false;
-        int counter = 0;
-        while (!line_end){  //1パケット(1441byte)を処理するループ
-            *(tempbuff + counter / 3) =
-                (*(receiveBuff + SIZE_OF_ID + counter    ) << 16) |
-                (*(receiveBuff + SIZE_OF_ID + counter + 1) << 8) |
-                (*(receiveBuff + SIZE_OF_ID + counter + 2));
-            printf("counter: %d\n\r", counter);
-
-            // ID + counterが1441を超えたらライン終了
-            if(counter+SIZE_OF_ID >= SIZE_OF_DATA){ 
+        while (line_end == false) {  //1パケット(1441byte)を処理するループ
+            r = *(receiveBuff + SIZE_OF_ID + counter);
+            *(p + (counter % 1280) + (counter / 1280) * 1280) = r;
+            counter++;
+            g = *(receiveBuff + SIZE_OF_ID + counter);
+            *(p + (counter % 1280) + (counter / 1280) * 1280) = g;
+            counter++;
+            b = *(receiveBuff + SIZE_OF_ID + counter);
+            *(p + (counter % 1280) + (counter / 1280) * 1280) = b;
+            counter++;
+            pixCounter++;
+            //printf("counter: %d\n\r", counter);
+            // 1437+4 >= 1441なら終わり
+            if (counter >= 3840){
                 line_end = true;
-                printf("line end\n\r");
-            }
-            else {
-                counter += 3;
+                counter = 0;
             }
         }
-
-        //lineCounter >= 1925になったら終了
-        if (packetCounter >= PACKET_TIMES){
+        if(pixCounter/line_len >= 720){
+            pixCounter = 0;
             frame_end = true;
-            printf("finish frame\n\r");
         }
-        packetCounter++;
     }
     close(sd);
 
-    int x = 0, y = 0;
-    int r = 0, g = 0, b = 0;
-    int pixelCounter = 0;
-    while (1)
-    {
-        for (y = 0; y < yres; y++)
-        {
-            for (x = 0; x < xres; x++)
-            {
-                if ((x < WIDTH) || (y < HEIGHT)) {
-                    r = *(tempbuff + pixelCounter);
-                    g = *(tempbuff + pixelCounter + 1);
-                    b = *(tempbuff + pixelCounter + 2);
-                    pixelCounter += 3;
-                }
-                else {
-                    r = 0;
-                    g = 0;
-                    b = 0;
-                }
-                // 7680/4 = 1920
-                *(buf + ((y * line_len / 4) + x)) = (r << 16) | (g << 8) | (b); // 00 RR GG BB
-            }
-        }
-    }
     printf("drawing finished.\n\r");
 
     munmap(buf, screensize);
     close(fd);
-    free(tempbuff); //memory解放
     return 0;
 }
