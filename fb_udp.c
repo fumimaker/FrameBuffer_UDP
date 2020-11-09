@@ -44,13 +44,7 @@ int returnId(void);
 
 
 int returnId(void){
-    int result = recvfrom(sd, receiveBuff, sizeof(receiveBuff), 0, (struct sockaddr *)&from_addr, &sin_size);
-    //printf("result: %d", result);
-
-    if(result != 1441){
-        perror("recvfrom");
-        return -1;
-    }
+    int result = recv(sd, receiveBuff, sizeof(receiveBuff), 0);
 
     uint32_t id = receiveBuff[0] << 24 | receiveBuff[1] << 16 | receiveBuff[2] << 8 | receiveBuff[3]; //return ID
     return id;
@@ -125,6 +119,7 @@ int main(int argc, char **argv){
     }
 
     memset(receiveBuff, 0, sizeof(receiveBuff));
+
     printf("waiting for new frame...\n\r");
     while (returnId() != -1);
 
@@ -137,31 +132,31 @@ int main(int argc, char **argv){
     uint32_t r = 0, g = 0, b = 0;
     uint32_t counter = 0;
     uint32_t pixCounter = 0;
+    int finish = false;
 
     while (frame_end == false){
         int id = returnId(); //update packetBuff
-        //printf("id: %d\n\r", id);
-
+        //printf("%d\n", id);
         int line_end = false;
         while (line_end == false) {  //1パケット(1441byte)を処理するループ
             r = *(receiveBuff + SIZE_OF_ID + counter);
-            *(p + (counter % 1280) + (counter / 1280) * 1280) = r;
+            *(p + ((pixCounter*3) % 1280) + ((pixCounter*3) / 1280) * 1280) = r;
             counter++;
             g = *(receiveBuff + SIZE_OF_ID + counter);
-            *(p + (counter % 1280) + (counter / 1280) * 1280) = g;
+            *(p + ((pixCounter * 3) % 1280) + ((pixCounter * 3) / 1280) * 1280) = g;
             counter++;
             b = *(receiveBuff + SIZE_OF_ID + counter);
-            *(p + (counter % 1280) + (counter / 1280) * 1280) = b;
+            *(p + ((pixCounter * 3) % 1280) + ((pixCounter * 3) / 1280) * 1280) = b;
             counter++;
             pixCounter++;
-            //printf("counter: %d\n\r", counter);
+            //printf("counter: %d\n", counter);
             // 1437+4 >= 1441なら終わり
             if (counter >= 3840){
                 line_end = true;
                 counter = 0;
             }
         }
-        if(pixCounter/line_len >= 720){
+        if(pixCounter/1280 >= 720){
             pixCounter = 0;
             frame_end = true;
         }

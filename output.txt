@@ -1,0 +1,10 @@
+SIZE_OF_PAYLOAD: 1437
+PACKET_TIMES: 1925
+SIZE_OF_ID: 4
+SIZE_OF_DATA: 1441
+malloc: 2764789
+RECVFRAM Atlys Ver0.1
+1280(pixel)x720(line), 24(bit per pixel), 3840(line length)
+waiting for new frame...
+drawing finished.
+
