@@ -115,22 +115,20 @@ int main(int argc, char **argv)
 
     memset(receiveBuff, 0, sizeof(receiveBuff));
 
-    printf("waiting for new frame...\n\r");
+    printf("waiting for new frame\n\r");
 
-    while (returnId() != 1924);
+    while (returnId() != 1924){
+        printf(".");
+    }
+    printf("\n\r");
 
     int frame_end = false;
     char *p = (char *)buf; //PをTEMPにした。
-    int x = 0, y = 0;
-    uint32_t r = 0, g = 0, b = 0;
-    uint32_t counter = 0;
-    uint32_t pixCounter = 0;
     int finish = false;
 
     int cnt = 0;
     int id = 0;
     int remain = 0;
-
 
     printf("while start\n\r");
 
@@ -141,9 +139,8 @@ int main(int argc, char **argv)
         id = receiveBuff[2] << 8 | receiveBuff[3];
 
         remain = (id != 1924) ? 1437 : (1280 * 720 * 3) - (id * 1437);
-        if (id!=1924){
-            memcpy(p + (id * 1437), receiveBuff + SIZE_OF_ID, 1437); //remain
-        }
+        memcpy(p + (id * 1437), receiveBuff + SIZE_OF_ID, remain);
+        
     }
     close(sd);
 
