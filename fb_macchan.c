@@ -126,7 +126,7 @@ int main(int argc, char **argv)
     char *p = (char *)buf; //PをTEMPにした。
     int finish = false;
 
-    int cnt = 0;
+    int frame = 0;
     int id = 0;
     int remain = 0;
     int pixel = 0;
@@ -135,15 +135,16 @@ int main(int argc, char **argv)
     printf("while start\n\r");
 
     while (1){
-        recv(sd, receiveBuff, sizeof(receiveBuff), 0); 
-        //TODO: エラー処理
-        //長さが違う可能性があるので何とかする
+        frame = recv(sd, receiveBuff, sizeof(receiveBuff), 0); 
+        if(frame!=1441){
+            printf("Error on udp. frame: %d\n\r",frame);
+        }
         id = receiveBuff[2] << 8 | receiveBuff[3];
         while (id > pixel) { //フレームロスしたら黒埋めしてるけど意味ある？
             remain = (pixel != 1924) ? 1437 : (1280 * 720 * 3) - (pixel * 1437);
             memcpy(p + (id * 1437), blank, remain);
-            pixel++;
             printf("blank: id=%d, pixel=%d\n\r", id, pixel);
+            pixel++;
         }
         remain = (id != 1924) ? 1437 : (1280 * 720 * 3) - (id * 1437);
         memcpy(p + (id * 1437), receiveBuff + SIZE_OF_ID, remain);
