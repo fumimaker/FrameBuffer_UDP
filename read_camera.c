@@ -37,9 +37,10 @@ int main(int argc, char **argv){
     OpenFrameBuffer(fd);
     buf = (uint32_t *)mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
-    if ( buf < 0){
+    if ( buf < 0) {
         fprintf(stderr, "cannot get framebuffer");
         exit(1);
     }
+    close(fd);
     return 0;
 }
