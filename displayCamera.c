@@ -8,27 +8,86 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <linux/videodev2.h>
+#include <linux/fb.h>
+#include <linux/fs.h>
+
+#define WIDTH 1280
+#define HEIGHT 720
+#define COLOR_DEPTH 3
+
+#define false 0
+#define true 1
+
+#define SIZE_OF_DATA 1441
+#define SIZE_OF_ID sizeof(int)
+#define SIZE_OF_FRAME (WIDTH * HEIGHT * COLOR_DEPTH)
+
+#define FB_NAME "/dev/fb0"
 
 void startCapture();
 void copyBuffer(uint8_t *dstBuffer, uint32_t *size);
 void stopCapture();
 int saveFileBinary(const char *filename, uint8_t *data, int size);
 
-int main()
-{
-    uint8_t buff[1280 * 720];
-    uint32_t size;
-    startCapture();
-    copyBuffer(buff, &size);
-    stopCapture();
-    saveFileBinary("PiCamera.jpg", buff, size);
-    return 0;
-}
-
 int fd;
 #define v4l2BufferNum 2
 void *v4l2Buffer[v4l2BufferNum];
 uint32_t v4l2BufferSize[v4l2BufferNum];
+
+int main()
+{
+    uint8_t buff[WIDTH * HEIGHT * COLOR_DEPTH];
+    uint32_t size;
+    int screensize;
+    int fd_fb;
+
+    fd_fb = open(FB_NAME, O_RDWR);
+    if (!fd_fb)
+    {
+        fprintf(stderr, "cannot open the FrameBuffer '%s'\n", FB_NAME);
+        exit(1);
+    }
+
+    struct fb_var_screeninfo vinfo;
+    struct fb_fix_screeninfo finfo;
+
+    if (ioctl(fd_fb, FBIOGET_FSCREENINFO, &finfo))
+    {
+        fprintf(stderr, "cannot open fix info\n");
+        exit(1);
+    }
+    if (ioctl(fd_fb, FBIOGET_VSCREENINFO, &vinfo))
+    {
+        fprintf(stderr, "cannot open variable info\n");
+        exit(1);
+    }
+
+    int xres = vinfo.xres;
+    int yres = vinfo.yres;
+    int bpp = vinfo.bits_per_pixel;
+    int line_len = finfo.line_length;
+
+    screensize = yres * xres * bpp / 8;
+    printf("RECVFRAM Atlys Ver0.1\n%d(pixel)x%d(line), %d(bit per pixel), %d(line length)\n", xres, yres, bpp, line_len);
+
+    uint32_t *framebuf;
+    if ((framebuf = (uint32_t *)mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fd_fb, 0)) < 0)
+    {
+        fprintf(stderr, "cannot get framebuffer");
+        exit(1);
+    }
+
+    startCapture();
+    copyBuffer(buff, &size);
+
+    char *p = (char *)framebuf;
+    memcpy(p, buff, WIDTH*HEIGHT*COLOR_DEPTH);
+    
+    stopCapture();
+    saveFileBinary("PiCamera.jpg", buff, size);
+    close(fd_fb);
+    return 0;
+}
 
 void startCapture()
 {
@@ -38,10 +97,11 @@ void startCapture()
     struct v4l2_format fmt;
     memset(&fmt, 0, sizeof(fmt));
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    fmt.fmt.pix.width = 1280;
-    fmt.fmt.pix.height = 720;
-    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_JPEG;
-    ioctl(fd, VIDIOC_S_FMT, &fmt);
+    fmt.fmt.pix.width = WIDTH;
+    fmt.fmt.pix.height = HEIGHT;
+    //fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_JPEG;
+    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB24;
+        ioctl(fd, VIDIOC_S_FMT, &fmt);
 
     /* 2. バッファリクエスト。バッファを2面確保してください */
     struct v4l2_requestbuffers req;
@@ -92,8 +152,7 @@ void copyBuffer(uint8_t *dstBuffer, uint32_t *size)
     FD_SET(fd, &fds);
 
     /* 6. バッファに画データが書き込まれるまで待つ */
-    while (select(fd + 1, &fds, NULL, NULL, NULL) < 0)
-        ;
+    while (select(fd + 1, &fds, NULL, NULL, NULL) < 0);
 
     if (FD_ISSET(fd, &fds))
     {
