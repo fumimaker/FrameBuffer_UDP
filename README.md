@@ -1,6 +1,19 @@
 # FrameBuffer_UDP
 
+### 各ファイルの使い方
+
+- ./fb_test.c
+  - 1280 720 24でグラデーションを表示するプログラム。
+- ./fb_macchan.c
+  - 1280 720 24でUDPデータを受信してそれを/dev/fb0に書いて映像出力するプログラム。
+- ./digitalcamerapi.c
+  - /dev/video0でjpg写真を撮るプログラム
+- ./displayCamera.c
+  - /dev/video0と通信して設定して映像を/dev/fb0に連続で書いて動画を表示するプログラム。
+
 UDPで受信したデータをいい感じに整列して/dev/fb0に書き込んで，HDMIに表示するプログラム．
+
+
 
 ## Raspi4で何か描画する
 - `git clone https://github.com/fumimaker/Framebuffer_UDP`でクローンする。
@@ -39,4 +52,5 @@ UDPで受信したデータをいい感じに整列して/dev/fb0に書き込ん
   - /dev/videoをmemapしてキャプチャ？
   - UDPで送信する。
 - 受信側は同じものが使えるはず。
-- 
+
+  
