@@ -78,13 +78,15 @@ int main()
     }
 
     startCapture();
-    copyBuffer(buff, &size);
 
-    char *p = (char *)framebuf;
-    memcpy(p, buff, WIDTH*HEIGHT*COLOR_DEPTH);
-    
-    stopCapture();
-    saveFileBinary("PiCamera.jpg", buff, size);
+    while(1){
+        copyBuffer(buff, &size);
+        char *p = (char *)framebuf;
+        memcpy(p, buff, WIDTH * HEIGHT * COLOR_DEPTH);
+    }
+
+    //stopCapture();
+    //saveFileBinary("PiCamera.jpg", buff, size);
     close(fd_fb);
     return 0;
 }
@@ -100,7 +102,7 @@ void startCapture()
     fmt.fmt.pix.width = WIDTH;
     fmt.fmt.pix.height = HEIGHT;
     //fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_JPEG;
-    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB24;
+    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;
         ioctl(fd, VIDIOC_S_FMT, &fmt);
 
     /* 2. バッファリクエスト。バッファを2面確保してください */
