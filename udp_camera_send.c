@@ -10,19 +10,27 @@
 #include <linux/videodev2.h>
 #include <linux/fb.h>
 #include <linux/fs.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
-#define WIDTH 1280
-#define HEIGHT 720
+#define WIDTH       1280
+#define HEIGHT      720
 #define COLOR_DEPTH 3
 
-#define false 0
-#define true 1
+#define false   0
+#define true    1
 
-#define SIZE_OF_DATA 1441
-#define SIZE_OF_ID sizeof(int)
-#define SIZE_OF_FRAME (WIDTH * HEIGHT * COLOR_DEPTH)
+#define SIZE_OF_DATA    1441
+#define SIZE_OF_ID      sizeof(int)
+#define SIZE_OF_FRAME   (WIDTH * HEIGHT * COLOR_DEPTH)
 
-#define FB_NAME "/dev/fb0"
+#define FB_NAME     "/dev/fb0"
+#define VIDEO_NAME  "/dev/video0"
+
+#define PORT    5001
+#define ADDR    "127.0.0.1"
 
 void startCapture();
 void copyBuffer(uint8_t *dstBuffer, uint32_t *size);
@@ -41,13 +49,27 @@ int main()
     int screensize;
     int fd_fb;
 
+    int sd;
+    struct sockaddr_in addr;
+
+    /*     Socketの設定をする    */
+    if ((sd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+    {
+        perror("socket");
+        return -1;
+    }
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(PORT);
+    addr.sin_addr.s_addr = inet_addr(ADDR);
+
+
+    /*     Frame Bufferの設定をする    */
     fd_fb = open(FB_NAME, O_RDWR);
     if (!fd_fb)
     {
         fprintf(stderr, "cannot open the FrameBuffer '%s'\n", FB_NAME);
         exit(1);
     }
-
     struct fb_var_screeninfo vinfo;
     struct fb_fix_screeninfo finfo;
 
@@ -77,24 +99,33 @@ int main()
         exit(1);
     }
 
+    /*     /dev/video0とV4L2を使ったカメラの設定をする    */
     startCapture();
 
+
+    /*      カメラ受信と出力スタート        */
     while (1)
     {
         copyBuffer(buff, &size);
         char *p = (char *)framebuf;
-        memcpy(p, buff, WIDTH * HEIGHT * COLOR_DEPTH);
+        if (sendto(sd, p, WIDTH*HEIGHT*COLOR_DEPTH, 0, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+        {
+            perror("sendto");
+            return -1;
+        }
+        memcpy(p, buff, WIDTH*HEIGHT*COLOR_DEPTH);
     }
 
     //stopCapture();
     //saveFileBinary("PiCamera.jpg", buff, size);
     close(fd_fb);
+    close(sd);
     return 0;
 }
 
 void startCapture()
 {
-    fd = open("/dev/video0", O_RDWR);
+    fd = open(VIDEO_NAME, O_RDWR);
 
     /* 1. フォーマット指定。320 x 240のJPEG形式でキャプチャしてください */
     struct v4l2_format fmt;
