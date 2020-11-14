@@ -30,7 +30,7 @@
 #define VIDEO_NAME  "/dev/video0"
 
 #define PORT    5001
-#define ADDR    "127.0.0.1"
+#define ADDR    "192.168.11.18"
 
 void startCapture();
 void copyBuffer(uint8_t *dstBuffer, uint32_t *size);
