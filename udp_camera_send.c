@@ -102,22 +102,30 @@ int main()
     /*     /dev/video0とV4L2を使ったカメラの設定をする    */
     startCapture();
 
-
+    
     /*      カメラ受信と出力スタート        */
-    while (1)
-    {
+    printf("send start\n\r");
+    int *linebuffer = (char *)malloc(sizeof(char) * 1441);
+    while (1) {
         copyBuffer(buff, &size);
-        char *p = (char *)framebuf;
-        if (sendto(sd, p, WIDTH*HEIGHT*COLOR_DEPTH, 0, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-        {
-            perror("sendto");
-            return -1;
+        char *p = buff; //data
+
+        for(int i=0; i<1925; i++){
+            linebuffer[0] = htonl(i);
+            memcpy(linebuffer+1, p+(i*1437), 1437);
+            if (sendto(sd, linebuffer, 1441, 0, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+                perror("sendto");
+                return -1;
+            }
+            //printf("id: %d\n\r", linebuffer[0]);
         }
-        memcpy(p, buff, WIDTH*HEIGHT*COLOR_DEPTH);
+        char *pointer = (char *)framebuf;
+        memcpy(pointer, buff, WIDTH*HEIGHT*COLOR_DEPTH);
     }
 
     //stopCapture();
     //saveFileBinary("PiCamera.jpg", buff, size);
+    free(linebuffer);
     close(fd_fb);
     close(sd);
     return 0;
