@@ -152,11 +152,14 @@ int main(int argc, char **argv)
         // }
 
         //remain = (id != 1924) ? 1437 : (1280 * 720 * 3) - (id * 1437);
-        if(id != 1924) {
+        if(id < 1924) {
             remain = 1437;
             local_id += 1;
         } else {
             remain = 12;//(1280 * 720 * 3) - (id * 1437); //500
+            if(local_id != 1924) {
+                printf("local: %d\n\r", local_id);
+            }
             local_id = 0;
         }
         memcpy(p + (id * 1437), receiveBuff + SIZE_OF_ID, remain);
