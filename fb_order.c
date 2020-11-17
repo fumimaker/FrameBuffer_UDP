@@ -144,19 +144,12 @@ int main(int argc, char **argv)
 
         id = receiveBuff[2] << 8 | receiveBuff[3];
 
-        while (id > local_id) { //フレームロスしたら黒埋めしてるけど意味ある？
-            remain = (local_id != 1924) ? 1437 : (1280 * 720 * 3) - (local_id * 1437);
-            memcpy(p + (id * 1437), blank, remain);
-            printf("blank: id=%d, local_id=%d\n\r", id, local_id);
-            local_id++;
-        }
-
         //remain = (id != 1924) ? 1437 : (1280 * 720 * 3) - (id * 1437);
         if(id != 1924) {
             remain = 1437;
             local_id += 1;
         } else {
-            remain = (1280 * 720 * 3) - (id * 1437); //500
+            remain = 12;//(1280 * 720 * 3) - (id * 1437); //500
             local_id = 0;
         }
         memcpy(p + (id * 1437), receiveBuff + SIZE_OF_ID, remain);
