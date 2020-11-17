@@ -130,7 +130,7 @@ int main(int argc, char **argv)
     int frame = 0;
     int id = 0;
     int remain = 0;
-    int pixel = 0;
+    int local_id = 0;
     char *blank = (char *)calloc(1, sizeof(char) * 1437);
 
     printf("while start\n\r");
@@ -138,21 +138,28 @@ int main(int argc, char **argv)
     while (1)
     {
         frame = recv(sd, receiveBuff, sizeof(receiveBuff), 0);
-        if (frame != 1441)
-        {
+        if (frame != 1441) {
             printf("Error on udp. frame: %d\n\r", frame);
         }
+
         id = receiveBuff[2] << 8 | receiveBuff[3];
-        while (id > pixel)
-        { //フレームロスしたら黒埋めしてるけど意味ある？
-            remain = (pixel != 1924) ? 1437 : (1280 * 720 * 3) - (pixel * 1437);
+
+        while (id > local_id) { //フレームロスしたら黒埋めしてるけど意味ある？
+            remain = (local_id != 1924) ? 1437 : (1280 * 720 * 3) - (local_id * 1437);
             memcpy(p + (id * 1437), blank, remain);
-            printf("blank: id=%d, pixel=%d\n\r", id, pixel);
-            pixel++;
+            printf("blank: id=%d, local_id=%d\n\r", id, local_id);
+            local_id++;
         }
-        remain = (id != 1924) ? 1437 : (1280 * 720 * 3) - (id * 1437);
+
+        //remain = (id != 1924) ? 1437 : (1280 * 720 * 3) - (id * 1437);
+        if(id != 1924) {
+            remain = 1437;
+            local_id += 1;
+        } else {
+            remain = (1280 * 720 * 3) - (id * 1437); //500
+            local_id = 0;
+        }
         memcpy(p + (id * 1437), receiveBuff + SIZE_OF_ID, remain);
-        pixel += 1;
     }
     close(sd);
 
