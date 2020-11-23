@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <wiringPi.h>
-#define  LED0 23
+#define  LED0 26
 int main (void){
     wiringPiSetupGpio();
     pinMode(LED0, OUTPUT);
