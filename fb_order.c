@@ -158,7 +158,7 @@ int main(int argc, char **argv)
         } else {
             remain = 12;//(1280 * 720 * 3) - (id * 1437); //500
             if(local_id != 1924) {
-                printf("local: %d\n\r", local_id);
+                printf("%d\n\r", local_id);
             }
             local_id = 0;
         }
