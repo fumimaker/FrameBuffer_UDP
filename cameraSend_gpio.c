@@ -116,21 +116,27 @@ int main()
     int *linebuffer = (int *)malloc(sizeof(char) * 1441);
     while (1)
     {
-        digitalWrite(PIN1, HIGH);
+        
         copyBuffer(buff, &size);
         //char *p = buff; //data
-        digitalWrite(PIN1, LOW);
+        
         for (int i = 0; i < 1925; i++)
         {
-            //digitalWrite(PIN2, HIGH);
+            if(i==0){
+                digitalWrite(PIN2, HIGH);
+            }
+            
             linebuffer[0] = htonl(i);
             memcpy(linebuffer + 1, buff + (i * 1437), 1437);
-            if (sendto(sd, linebuffer, 1441, 0, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-            {
+            if (sendto(sd, linebuffer, 1441, 0, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
                 perror("sendto");
                 return -1;
             }
-            
+
+            if (i == 0) {
+                digitalWrite(PIN2, LOW);
+            }
+
             //printf("id: %d\n\r", linebuffer[0]);
         }
         //digitalWrite(PIN2, LOW);
@@ -207,11 +213,11 @@ void copyBuffer(uint8_t *dstBuffer, uint32_t *size)
     fd_set fds;
     FD_ZERO(&fds);
     FD_SET(fd, &fds);
-
+    digitalWrite(PIN1, HIGH);
     /* 6. バッファに画データが書き込まれるまで待つ */
     while (select(fd + 1, &fds, NULL, NULL, NULL) < 0)
         ;
-
+    digitalWrite(PIN1, LOW);
     if (FD_ISSET(fd, &fds))
     {
         /* 7. バッファのデキュー。もっとも古くキャプチャされたバッファをデキューして、そのインデックス番号を教えてください */
