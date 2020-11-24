@@ -8,9 +8,9 @@ int main (void){
 
     for(;;){
         digitalWrite(LED0,HIGH);
-        delay(500);
+        //delay(1);
         digitalWrite(LED0, LOW);
-        delay(500);
+        //delay(1);
     }
     return EXIT_SUCCESS;
 }
