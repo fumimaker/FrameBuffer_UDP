@@ -143,10 +143,11 @@ int main(int argc, char **argv)
     int waitForData = 1;
     printf("while start\n\r");
     memset(receiveBuff, 0, sizeof(receiveBuff));
-    
+
     while (1) {
         if(SOFflag == 1) {
             digitalWrite(PIN1, HIGH); //SOF Waiting = HIGH
+            digitalWrite(PIN2, HIGH); //HIGH = memcpy start
             SOFflag = 0;
         }
         
@@ -167,7 +168,7 @@ int main(int argc, char **argv)
 
         //remain = (id != 1924) ? 1437 : (1280 * 720 * 3) - (id * 1437)
         if(id==0){
-            digitalWrite(PIN2, HIGH); //HIGH = memcpy start
+            //digitalWrite(PIN2, HIGH); //HIGH = memcpy start
         }
         if (id < 1924)
         {
