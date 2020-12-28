@@ -122,10 +122,6 @@ int main(int argc, char **argv)
         perror("bind");
         return -1;
     }
-    int val = 1;
-    ioctl(sd, FIONBIO, &val); // non Blocking mode
-
-    
 
     printf("waiting for new frame\n\r");
 
@@ -146,19 +142,15 @@ int main(int argc, char **argv)
     char *blank = (char *)calloc(1, sizeof(char) * 1437);
     int waitForData = 1;
     printf("while start\n\r");
-
+    memset(receiveBuff, 0, sizeof(receiveBuff));
+    
     while (1) {
         if(SOFflag == 1) {
             digitalWrite(PIN1, HIGH); //SOF Waiting = HIGH
             SOFflag = 0;
         }
-        memset(receiveBuff, 0, sizeof(receiveBuff));
-        while (waitForData == 1){
-            frame = recv(sd, receiveBuff, sizeof(receiveBuff), 0);
-            if(frame > 1){
-                waitForData = 0;
-            }
-        }
+        
+        frame = recv(sd, receiveBuff, sizeof(receiveBuff), 0);
         digitalWrite(PIN1, LOW); //SOF Arrived
 
         if (frame != 1441) {
