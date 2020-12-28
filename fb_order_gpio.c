@@ -46,6 +46,7 @@ uint32_t *buf;
 
 int OpenFrameBuffer(int);
 int returnId(void);
+int SOFflag = 1;
 
 int returnId(void)
 {
@@ -121,8 +122,10 @@ int main(int argc, char **argv)
         perror("bind");
         return -1;
     }
+    int val = 1;
+    ioctl(sd, FIONBIO, &val); // non Blocking mode
 
-    memset(receiveBuff, 0, sizeof(receiveBuff));
+    
 
     printf("waiting for new frame\n\r");
 
@@ -141,18 +144,26 @@ int main(int argc, char **argv)
     int remain = 0;
     int local_id = 0;
     char *blank = (char *)calloc(1, sizeof(char) * 1437);
-
+    int waitForData = 1;
     printf("while start\n\r");
 
-    while (1)
-    {
-        digitalWrite(PIN1, HIGH);
-        frame = recv(sd, receiveBuff, sizeof(receiveBuff), 0);
-        if (frame != 1441)
-        {
+    while (1) {
+        if(SOFflag == 1) {
+            digitalWrite(PIN1, HIGH); //SOF Waiting = HIGH
+            SOFflag = 0;
+        }
+        memset(receiveBuff, 0, sizeof(receiveBuff));
+        while (waitForData == 1){
+            frame = recv(sd, receiveBuff, sizeof(receiveBuff), 0);
+            if(frame > 1){
+                waitForData = 0;
+            }
+        }
+        digitalWrite(PIN1, LOW); //SOF Arrived
+
+        if (frame != 1441) {
             printf("Error on udp. frame: %d\n\r", frame);
         }
-        digitalWrite(PIN1, LOW);
         id = receiveBuff[2] << 8 | receiveBuff[3];
 
         // while (id > local_id) { //フレームロスしたら黒埋めしてるけど意味ある？
@@ -164,7 +175,7 @@ int main(int argc, char **argv)
 
         //remain = (id != 1924) ? 1437 : (1280 * 720 * 3) - (id * 1437)
         if(id==0){
-            digitalWrite(PIN2, HIGH);
+            digitalWrite(PIN2, HIGH); //HIGH = memcpy start
         }
         if (id < 1924)
         {
@@ -179,11 +190,12 @@ int main(int argc, char **argv)
                 printf("%d\n\r", local_id);
             }
             local_id = 0;
+            SOFflag = 1;
         }
         memcpy(p + (id * 1437), receiveBuff + SIZE_OF_ID, remain);
         if (id == 0)
         {
-            digitalWrite(PIN2, LOW);
+            digitalWrite(PIN2, LOW); //LOW = memcpy end
         }
     }
     close(sd);
