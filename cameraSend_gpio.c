@@ -215,9 +215,7 @@ void copyBuffer(uint8_t *dstBuffer, uint32_t *size)
     FD_SET(fd, &fds);
     digitalWrite(PIN1, HIGH);
     /* 6. バッファに画データが書き込まれるまで待つ */
-    while (select(fd + 1, &fds, NULL, NULL, NULL) < 0)
-        ;
-    digitalWrite(PIN1, LOW);
+    while (select(fd + 1, &fds, NULL, NULL, NULL) < 0);
     if (FD_ISSET(fd, &fds))
     {
         /* 7. バッファのデキュー。もっとも古くキャプチャされたバッファをデキューして、そのインデックス番号を教えてください */
@@ -236,6 +234,7 @@ void copyBuffer(uint8_t *dstBuffer, uint32_t *size)
         /* 10. 先ほどデキューしたバッファを、再度エンキューする。カメラデバイスはこのバッファに対して再びキャプチャした画を書き込む */
         ioctl(fd, VIDIOC_QBUF, &buf);
     }
+    digitalWrite(PIN1, LOW);
 }
 
 void stopCapture()
