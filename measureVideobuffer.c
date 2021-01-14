@@ -16,9 +16,9 @@
 #include <arpa/inet.h>
 #include <wiringPi.h>
 
-#define PIN1    21
-#define PIN2    20
-#define PIN3    16
+#define PIN1 21
+#define PIN2 20
+#define PIN3 16
 
 #define WIDTH 1280
 #define HEIGHT 720
@@ -117,28 +117,39 @@ int main()
     while (1)
     {
         copyBuffer(buff, &size);
-        //char *p = buff; //data
-        
+
+        unsigned long coloradder = 0;
+        for(int i=0; i<HEIGHT*COLOR_DEPTH*30; i++){ //30line
+            coloradder += buff[i];
+        }
+        if (coloradder > HEIGHT * COLOR_DEPTH * 30 * 256 * 0.6)
+        { //60%以上光った
+            digitalWrite(PIN2, HIGH);
+        }
+
         for (int i = 0; i < 1925; i++)
         {
-            if(i==0){
-                digitalWrite(PIN2, HIGH);
+            if (i == 0)
+            {
+                //digitalWrite(PIN2, HIGH);
             }
-            
+
             linebuffer[0] = htonl(i);
             memcpy(linebuffer + 1, buff + (i * 1437), 1437);
-            if (sendto(sd, linebuffer, 1441, 0, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+            if (sendto(sd, linebuffer, 1441, 0, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+            {
                 perror("sendto");
                 return -1;
             }
 
-            if (i == 0) {
-                digitalWrite(PIN2, LOW);
+            if (i == 0)
+            {
+                //digitalWrite(PIN2, LOW);
             }
 
             //printf("id: %d\n\r", linebuffer[0]);
         }
-        //digitalWrite(PIN2, LOW);
+        digitalWrite(PIN2, LOW);
         //char *pointer = (char *)framebuf;
         //memcpy((char *)framebuf, buff, WIDTH*HEIGHT*COLOR_DEPTH);
     }
