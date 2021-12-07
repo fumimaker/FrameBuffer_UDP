@@ -32,11 +32,11 @@
 #define SIZE_OF_DATA        1450
 #define SIZE_OF_ID          2
 #define SIZE_OF_datasize    4
-#define SIZE_OF_HEADER      SIZE_OF_ID + SIZE_OF_datasize
+#define SIZE_OF_HEADER      (SIZE_OF_ID + SIZE_OF_datasize)
 #define SIZE_OF_FRAME       (WIDTH * HEIGHT * COLOR_DEPTH)
 
 //1915になるはず
-#define END_OF_ID (SIZE_OF_FRAME/(SIZE_OF_DATA-(SIZE_OF_HEADER)))+1
+#define END_OF_ID (1280*720*4/(SIZE_OF_DATA-(SIZE_OF_HEADER)))
 
 int sd;
 struct sockaddr_in addr;
@@ -133,6 +133,8 @@ int main(int argc, char **argv)
     uint32_t datasize = 0;
     uint32_t remain = 0;
     uint32_t pixel = 0;
+    uint32_t udp_packet = 0;
+    uint32_t pixel_counter = 0;
     char *blank = (char *)calloc(1, sizeof(char)*SIZE_OF_DATA-SIZE_OF_HEADER);
     int init_done = 0;
     printf("while start\n\r");
@@ -152,17 +154,21 @@ int main(int argc, char **argv)
         } else {
             frame = recv(sd, receiveBuff, sizeof(receiveBuff), 0); 
             id = receiveBuff[0] << 8 | receiveBuff[1] << 0;
+            //printf("id = %d\n",id);
+        }
+
+        // Start of Frame packet //
+        if(id==0){ 
+            udp_packet = 0;
+            datasize = 0;
+            pixel_counter = 0;
         }
 
         if(frame!=SIZE_OF_DATA){ //1450byte
             printf("Error on udp. frame: %d\n\r",frame);
         }
 
-        datasize = 
-            receiveBuff[2] << 24 |
-            receiveBuff[3] << 16 |
-            receiveBuff[4] << 8  |
-            receiveBuff[5] << 0;
+        datasize = receiveBuff[2] << 24 | receiveBuff[3] << 16 | receiveBuff[4] << 8  | receiveBuff[5] << 0;
 
         // while (id > pixel) { //フレームロスしたら黒埋めしてるけど意味ある？
         //     remain = (pixel != 1924) ? SIZE_OF_DATA-SIZE_OF_ID : (1280 * 720 * 3) - (pixel * SIZE_OF_DATA-SIZE_OF_ID);
@@ -170,9 +176,24 @@ int main(int argc, char **argv)
         //     printf("blank: id=%d, pixel=%d\n\r", id, pixel);
         //     pixel++;
         // }
-        remain = (id != END_OF_ID) ? SIZE_OF_DATA-SIZE_OF_HEADER : datasize - (id * (SIZE_OF_DATA-SIZE_OF_HEADER));
-        memcpy(p + (id * (SIZE_OF_DATA-SIZE_OF_HEADER)), receiveBuff + SIZE_OF_HEADER, remain);
-        pixel += 1;
+        if(id < 2552){
+            remain = 1444; //Fullsize
+        } else {
+            remain = datasize - (id * 1444);//1450-6byte
+        }
+        printf("id = %d, remain = %d, packet = %d, datasize = %d\n",id, remain, udp_packet, datasize);
+        //memcpy(p + (id * 1444), receiveBuff + 6, remain);
+
+        for(uint32_t i=0; i<remain; i+=4){//1パケット分の処理
+            p[pixel_counter+0] = receiveBuff[6+i+0];
+            p[pixel_counter+1] = receiveBuff[6+i+1];
+            p[pixel_counter+2] = receiveBuff[6+i+2];
+            pixel_counter += 3;
+            // if(udp_packet>=2526){
+            //     printf("p[]=%d, buf[]=%d\n",(udp_packet*1444)+i,6+i+0);
+            // }
+        }
+        udp_packet += 1;
     }
     close(sd);
 
