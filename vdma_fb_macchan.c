@@ -29,11 +29,14 @@
 #define true 1
 
 //#define SIZE_OF_DATA 1441
-#define SIZE_OF_DATA 1450
-#define SIZE_OF_ID 2
-#define SIZE_OF_datasize 4
-#define SIZE_OF_HEADER SIZE_OF_ID + SIZE_OF_datasize
-#define SIZE_OF_FRAME (WIDTH * HEIGHT * COLOR_DEPTH)
+#define SIZE_OF_DATA        1450
+#define SIZE_OF_ID          2
+#define SIZE_OF_datasize    4
+#define SIZE_OF_HEADER      SIZE_OF_ID + SIZE_OF_datasize
+#define SIZE_OF_FRAME       (WIDTH * HEIGHT * COLOR_DEPTH)
+
+//1915になるはず
+#define END_OF_ID (SIZE_OF_FRAME/(SIZE_OF_DATA-(SIZE_OF_HEADER)))+1
 
 int sd;
 struct sockaddr_in addr;
@@ -154,21 +157,21 @@ int main(int argc, char **argv)
         if(frame!=SIZE_OF_DATA){ //1450byte
             printf("Error on udp. frame: %d\n\r",frame);
         }
-        
+
         datasize = 
             receiveBuff[2] << 24 |
             receiveBuff[3] << 16 |
             receiveBuff[4] << 8  |
             receiveBuff[5] << 0;
 
-        while (id > pixel) { //フレームロスしたら黒埋めしてるけど意味ある？
-            remain = (pixel != 1924) ? SIZE_OF_DATA-SIZE_OF_ID : (1280 * 720 * 3) - (pixel * SIZE_OF_DATA-SIZE_OF_ID);
-            memcpy(p + (id * SIZE_OF_DATA-SIZE_OF_ID), blank, remain);
-            printf("blank: id=%d, pixel=%d\n\r", id, pixel);
-            pixel++;
-        }
-        remain = (id != 1924) ? SIZE_OF_DATA-SIZE_OF_ID : (1280 * 720 * 3) - (id * SIZE_OF_DATA-SIZE_OF_ID);
-        memcpy(p + (id * SIZE_OF_DATA-SIZE_OF_ID), receiveBuff + SIZE_OF_ID, remain);
+        // while (id > pixel) { //フレームロスしたら黒埋めしてるけど意味ある？
+        //     remain = (pixel != 1924) ? SIZE_OF_DATA-SIZE_OF_ID : (1280 * 720 * 3) - (pixel * SIZE_OF_DATA-SIZE_OF_ID);
+        //     memcpy(p + (id * SIZE_OF_DATA-SIZE_OF_ID), blank, remain);
+        //     printf("blank: id=%d, pixel=%d\n\r", id, pixel);
+        //     pixel++;
+        // }
+        remain = (id != END_OF_ID) ? SIZE_OF_DATA-SIZE_OF_HEADER : datasize - (id * (SIZE_OF_DATA-SIZE_OF_HEADER));
+        memcpy(p + (id * (SIZE_OF_DATA-SIZE_OF_HEADER)), receiveBuff + SIZE_OF_HEADER, remain);
         pixel += 1;
     }
     close(sd);
