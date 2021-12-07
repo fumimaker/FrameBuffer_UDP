@@ -46,7 +46,7 @@ char receiveBuff[2048]; // 受信バッファ
 uint32_t *buf;
 
 int OpenFrameBuffer(int);
-int returnId(void);
+uint16_t returnId(void);
 
 //パケットIDを返す
 uint16_t returnId(void)
