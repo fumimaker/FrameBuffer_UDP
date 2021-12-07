@@ -28,8 +28,11 @@
 #define false 0
 #define true 1
 
-#define SIZE_OF_DATA 1441
-#define SIZE_OF_ID sizeof(int)
+//#define SIZE_OF_DATA 1441
+#define SIZE_OF_DATA 1450
+#define SIZE_OF_ID 2
+#define SIZE_OF_datasize 4
+#define SIZE_OF_HEADER SIZE_OF_ID + SIZE_OF_datasize
 #define SIZE_OF_FRAME (WIDTH * HEIGHT * COLOR_DEPTH)
 
 int sd;
@@ -42,10 +45,11 @@ uint32_t *buf;
 int OpenFrameBuffer(int);
 int returnId(void);
 
-int returnId(void)
+//パケットIDを返す
+uint16_t returnId(void)
 {
     recv(sd, receiveBuff, sizeof(receiveBuff), 0);
-    return receiveBuff[0] << 24 | receiveBuff[1] << 16 | receiveBuff[2] << 8 | receiveBuff[3];
+    return receiveBuff[0] << 8 | receiveBuff[1] << 0;
     //return ID
 }
 
@@ -117,37 +121,54 @@ int main(int argc, char **argv)
 
     printf("waiting for new frame\n\r");
 
-    while (returnId() != 1924){
-        printf(".");
-    }
-    printf("\n\r");
-
     int frame_end = false;
     char *p = (char *)buf; //PをTEMPにした。
     int finish = false;
 
-    int frame = 0;
-    int id = 0;
-    int remain = 0;
-    int pixel = 0;
-    char *blank = (char *)calloc(1, sizeof(char)*1437);
-
+    uint32_t frame = 0;
+    uint32_t id = 0;
+    uint32_t datasize = 0;
+    uint32_t remain = 0;
+    uint32_t pixel = 0;
+    char *blank = (char *)calloc(1, sizeof(char)*SIZE_OF_DATA-SIZE_OF_HEADER);
+    int init_done = 0;
     printf("while start\n\r");
+    uint32_t id_init;
+    do { //最初のIDじゃなかったら読み飛ばす(待つ)
+        frame = recv(sd, receiveBuff, sizeof(receiveBuff), 0);
+        id_init = receiveBuff[0] << 8 | receiveBuff[1] << 0;
+        printf(".");
+    } while(id_init != 0);
+    printf("\n\r");
+    id = id_init;
+    init_done = 0;
 
     while (1){
-        frame = recv(sd, receiveBuff, sizeof(receiveBuff), 0); 
-        if(frame!=1441){
+        if(init_done==0){ //最初だけ読み込みが終わっているので最初だけは読まない
+            init_done = 1;
+        } else {
+            frame = recv(sd, receiveBuff, sizeof(receiveBuff), 0); 
+            id = receiveBuff[0] << 8 | receiveBuff[1] << 0;
+        }
+
+        if(frame!=SIZE_OF_DATA){ //1450byte
             printf("Error on udp. frame: %d\n\r",frame);
         }
-        id = receiveBuff[2] << 8 | receiveBuff[3];
+        
+        datasize = 
+            receiveBuff[2] << 24 |
+            receiveBuff[3] << 16 |
+            receiveBuff[4] << 8  |
+            receiveBuff[5] << 0;
+
         while (id > pixel) { //フレームロスしたら黒埋めしてるけど意味ある？
-            remain = (pixel != 1924) ? 1437 : (1280 * 720 * 3) - (pixel * 1437);
-            memcpy(p + (id * 1437), blank, remain);
+            remain = (pixel != 1924) ? SIZE_OF_DATA-SIZE_OF_ID : (1280 * 720 * 3) - (pixel * SIZE_OF_DATA-SIZE_OF_ID);
+            memcpy(p + (id * SIZE_OF_DATA-SIZE_OF_ID), blank, remain);
             printf("blank: id=%d, pixel=%d\n\r", id, pixel);
             pixel++;
         }
-        remain = (id != 1924) ? 1437 : (1280 * 720 * 3) - (id * 1437);
-        memcpy(p + (id * 1437), receiveBuff + SIZE_OF_ID, remain);
+        remain = (id != 1924) ? SIZE_OF_DATA-SIZE_OF_ID : (1280 * 720 * 3) - (id * SIZE_OF_DATA-SIZE_OF_ID);
+        memcpy(p + (id * SIZE_OF_DATA-SIZE_OF_ID), receiveBuff + SIZE_OF_ID, remain);
         pixel += 1;
     }
     close(sd);
