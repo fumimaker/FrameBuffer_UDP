@@ -19,5 +19,6 @@
 void main(){
     int a = (1280*720*3/(1450-6))+1;
     int b = END_OF_ID;
-    printf("%d\n",b);
+    int c = 0x384000 - (2552 * 1444);
+    printf("%d\n",c);
 }

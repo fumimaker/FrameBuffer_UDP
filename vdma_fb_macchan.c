@@ -164,10 +164,6 @@ int main(int argc, char **argv)
             pixel_counter = 0;
         }
 
-        if(frame!=SIZE_OF_DATA){ //1450byte
-            printf("Error on udp. frame: %d\n\r",frame);
-        }
-
         datasize = receiveBuff[2] << 24 | receiveBuff[3] << 16 | receiveBuff[4] << 8  | receiveBuff[5] << 0;
 
         // while (id > pixel) { //フレームロスしたら黒埋めしてるけど意味ある？
@@ -181,7 +177,12 @@ int main(int argc, char **argv)
         } else {
             remain = datasize - (id * 1444);//1450-6byte
         }
-        printf("id = %d, remain = %d, packet = %d, datasize = %d\n",id, remain, udp_packet, datasize);
+        if(frame!=SIZE_OF_DATA){ //1450byte
+            if(frame!=1313){
+                printf("Error on udp. frame: %d\n\r",frame);
+            }
+        }
+        //printf("id = %d, remain = %d, packet = %d, datasize = %d\n",id, remain, udp_packet, datasize);
         //memcpy(p + (id * 1444), receiveBuff + 6, remain);
 
         for(uint32_t i=0; i<remain; i+=4){//1パケット分の処理
